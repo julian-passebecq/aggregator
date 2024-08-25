@@ -1,34 +1,29 @@
 const { MongoClient, ObjectId } = require('mongodb');
 
-exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
+export default async function handler(req, res) {
   const MONGO_URI = process.env.MONGO_URI;
 
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'PATCH, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
-    };
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return res.status(200).end();
   }
 
   try {
     const client = new MongoClient(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
     await client.connect();
     const collection = client.db("blue-sitemaps").collection("data");
-    
-    const { body } = event;
+
+    const { body } = req;
     if (!body) {
-      return { statusCode: 400, body: JSON.stringify({ error: "Request body is missing" }) };
+      return res.status(400).json({ error: "Request body is missing" });
     }
 
     const { newState } = JSON.parse(body);
-    const id = event.path.split('/').pop();
+    const id = req.url.split('/').pop();
     if (!ObjectId.isValid(id)) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'Invalid ID' }) };
+      return res.status(400).json({ error: 'Invalid ID' });
     }
 
     const updateResult = await collection.updateOne(
@@ -38,17 +33,9 @@ exports.handler = async (event, context) => {
 
     await client.close();
 
-    return {
-      statusCode: updateResult.matchedCount === 0 ? 404 : 200,
-      body: JSON.stringify({ modifiedCount: updateResult.modifiedCount }),
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    };
+    return res.status(updateResult.matchedCount === 0 ? 404 : 200).json({ modifiedCount: updateResult.modifiedCount });
   } catch (error) {
     console.error('Database error:', error);
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: error.message })
-    };
+    return res.status(500).json({ error: error.message });
   }
-};
+}

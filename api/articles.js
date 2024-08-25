@@ -1,7 +1,6 @@
 const { MongoClient } = require('mongodb');
 
-exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
+export default async function handler(req, res) {
   const MONGO_URI = process.env.MONGO_URI;
 
   try {
@@ -9,7 +8,7 @@ exports.handler = async (event, context) => {
     await client.connect();
     const collection = client.db("blue-sitemaps").collection("data");
 
-    const params = event.queryStringParameters;
+    const params = req.query;
     let query = {};
     let sort = { lastmod: -1 }; // Default to newest first
 
@@ -37,22 +36,8 @@ exports.handler = async (event, context) => {
     const articles = await collection.find(query).sort(sort).toArray();
     await client.close();
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify(articles),
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    };
+    res.status(200).json(articles);
   } catch (error) {
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify({ error: error.message })
-    };
+    res.status(500).json({ error: error.message });
   }
-};
+}

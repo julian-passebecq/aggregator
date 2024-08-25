@@ -1,16 +1,14 @@
 const { MongoClient } = require('mongodb');
 
-exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
+export default async function handler(req, res) {
   const MONGO_URI = process.env.MONGO_URI;
-
 
   try {
     const client = new MongoClient(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
     await client.connect();
     const collection = client.db("blue-sitemaps").collection("data");
 
-    const params = event.queryStringParameters;
+    const params = req.query;
     let query = {};
 
     if (params.field) {
@@ -20,21 +18,8 @@ exports.handler = async (event, context) => {
     const websites = await collection.distinct('website', query);
     await client.close();
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify(websites),
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    };
-} catch (error) {
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify({ error: error.message })
-    };
-};}
+    res.status(200).json(websites);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}

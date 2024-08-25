@@ -97,7 +97,8 @@ const App = () => {
 
     queryParameters.append('sortOrder', sortOrder);
 
-    const requestUrl = `${config.apiUrl}/.netlify/functions/articles?${queryParameters.toString()}`;
+    const requestUrl = `${config.apiUrl}/api/articles?${queryParameters.toString()}`;
+
 
     try {
       const response = await fetch(requestUrl);
@@ -164,7 +165,8 @@ const App = () => {
       setCurrentSubFilters(newSubFilters);
     }
 
-    fetch(`${config.apiUrl}/.netlify/functions/websites?field=${encodeURIComponent(category)}`)
+    fetch(`${config.apiUrl}/api/websites?field=${encodeURIComponent(category)}`)
+
       .then(response => response.json())
       .then(websitesData => setUniqueWebsites(websitesData))
       .catch(error => console.error('Error fetching websites:', error));
